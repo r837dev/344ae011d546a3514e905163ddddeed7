@@ -1,0 +1,1112 @@
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — layers.css
+   Cascade layer architecture. MUST load before all other files.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+
+   ── LAYER ORDER (lowest → highest specificity) ──────────────
+
+   reset    Structural + typographic baseline.
+            Bare HTML looks decent with zero effort.
+            System font stacks, 12px app-tight base, zero margins.
+            Files: reset.css, spacing.css, motion.css, typography.css,
+                   elevation.css, icons.css
+
+   unity    Design system opinion. Colors, depth, surfaces, phased
+            colors, status semantics, premium font stacks (tier 2),
+            doc reading scope, utility classes.
+            Files: colors.css, scales.css, surfaces.css,
+                   typography-doc.css, utility.css
+
+   sys      App-level theme overrides. Swap tint hues, accent color,
+            font stacks, density, or any --u-* token.
+            Consumer-defined — empty by default.
+            Example: @layer sys { :root { --tint: 40; --u-accent: oklch(0.55 0.22 180); } }
+
+   app      Page or view-specific rules. Route-level layout,
+            one-off overrides, view compositions.
+            Consumer-defined — empty by default.
+
+   plugin   Third-party styles, escape hatch, hard overrides.
+            Highest specificity — use sparingly.
+            Consumer-defined — empty by default.
+
+   ── FILE LOAD ORDER ─────────────────────────────────────────
+
+   1. layers.css          ← this file (layer declaration)
+   2. reset.css           ← structural reset
+   3. spacing.css         ← space scale, radius
+   4. motion.css          ← easing, a11y media queries
+   5. typography.css      ← stacks, scales, element selectors
+   6. icons.css           ← icon sizing
+   7. elevation.css       ← shadows, z-index, focus ring
+   8. colors.css          ← rainbow palette, phased, status
+   9. scales.css          ← grey, depth, border, tint system
+   10. surfaces.css       ← semantic mapping (--u-bg/surface/fg)
+   11. typography-doc.css ← reading scope (.u-doc)
+   12. utility.css        ← utility classes
+
+   Optional / isolated:
+   - lab.css              ← lab chrome (demo environment, not shipped)
+
+   ── DARK MODE ───────────────────────────────────────────────
+
+   Toggle via data-theme="dark" on any container.
+   Phased colors (--u-ph-*) flip automatically.
+   Depth/border ramps flip automatically.
+   Surface semantic tokens (--u-bg, --u-fg) flip automatically.
+   Status colors derive from phased — no manual override needed.
+
+   ── SHADOW DOM ──────────────────────────────────────────────
+
+   CSS vars (--u-*) cross shadow boundaries via inheritance.
+   Element selectors (h1, p, etc.) do NOT cross — light DOM only.
+   Components consume vars in their internal :host var map.
+   Reset provides a sensible light DOM baseline.
+   Components are not dependent on reset — they self-style.
+
+   ── THEMING ─────────────────────────────────────────────────
+
+   Two channels:
+   1. CSS vars cross shadow DOM — the theming API
+   2. @layer controls specificity — does NOT cross shadow DOM
+
+   To re-skin: override vars in @layer sys.
+   To re-tint surfaces: change --tint / --tint-i in @layer sys.
+   To swap fonts: override --u-font-sans/serif/mono in @layer sys.
+
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer reset, unity, sys, app, plugin;
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — reset.css
+   Structural reset. Box model, scrollbar, smoothing.
+   Typography reset lives in typography.css.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer reset {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* thin scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--u-border, #ccc) transparent;
+  }
+
+  /* image defaults */
+  img, picture, video, canvas, svg {
+    display: block;
+    max-width: 100%;
+  }
+
+  /* form reset */
+  input, button, textarea, select {
+    font: inherit;
+    color: inherit;
+  }
+
+  /* table reset */
+  table {
+    border-collapse: collapse;
+    border-spacing: 0;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — spacing.css
+   4px base scale, radius, layout constraints.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer reset {
+  :root {
+    /* ── space scale: 4px base ── */
+    --u-space-1:  0.25rem;
+    --u-space-2:  0.5rem;
+    --u-space-3:  0.75rem;
+    --u-space-4:  1rem;
+    --u-space-5:  1.25rem;
+    --u-space-6:  1.5rem;
+    --u-space-8:  2rem;
+    --u-space-10: 2.5rem;
+    --u-space-12: 3rem;
+    --u-space-16: 4rem;
+    --u-space-20: 5rem;
+    --u-space-24: 6rem;
+
+    /* ── radius ── */
+    --u-radius-none: 0;
+    --u-radius-sm:   0.125rem;
+    --u-radius:      0.375rem;
+    --u-radius-lg:   0.625rem;
+    --u-radius-xl:   1rem;
+    --u-radius-full: 999px;
+
+    /* ── layout ── */
+    --u-max-content: 72rem;
+    --u-max-doc:     40rem;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — motion.css
+   Easing tokens + reduced-motion + forced-colors.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer reset {
+  :root {
+    /* ── easing ── */
+    --u-ease:        150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --u-ease-out:    200ms cubic-bezier(0, 0, 0.2, 1);
+    --u-ease-spring: 300ms cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  /* ── reduced motion ── */
+  @media (prefers-reduced-motion: reduce) {
+    :root {
+      --u-ease:        0ms;
+      --u-ease-out:    0ms;
+      --u-ease-spring: 0ms;
+    }
+  }
+
+  /* ── forced colors / high contrast ── */
+  @media (forced-colors: active) {
+    :root {
+      --u-focus-ring: 0 0 0 2px Canvas, 0 0 0 4px LinkText;
+    }
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — typography.css
+   Font stacks (tier 1 + tier 2), type scales, element reset.
+   Vars cross shadow DOM. Element selectors are light DOM only.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+
+   Scopes:
+   - reset:  system stacks, 12px base, zero margins
+   - unity:  premium stacks (Inter, Lora, JetBrains Mono)
+   - doc:    reading scope — separate file (typography-doc.css)
+   - data:   dense/viz scope — reserved
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer reset {
+  :root {
+    /* ── tier 1 stacks: system, always available ── */
+    --u-font-sans:  Roboto, 'Helvetica Neue', Helvetica, system-ui, Arial, sans-serif;
+    --u-font-serif: Charter, 'Bitstream Charter', 'Iowan Old Style', Georgia, serif;
+    --u-font-mono:  Menlo, Consolas, 'Cascadia Code', ui-monospace, monospace;
+
+    /* ── active stacks: override to swap voice ── */
+    --u-font-body:    var(--u-font-sans);
+    --u-font-heading: var(--u-font-sans);
+    --u-font-code:    var(--u-font-mono);
+
+    /* ── layout ── */
+    --u-type-measure: 65ch;
+
+    /* ── reset heading scale: app-sized ── */
+    --u-reset-h1: 700 1.25rem/1.2 var(--u-font-heading);
+    --u-reset-h2: 700 1.0625rem/1.25 var(--u-font-heading);
+    --u-reset-h3: 600 0.9375rem/1.3 var(--u-font-heading);
+    --u-reset-h4: 600 0.8125rem/1.35 var(--u-font-heading);
+    --u-reset-h5: 600 0.75rem/1.4 var(--u-font-body);
+    --u-reset-h6: 500 0.5625rem/1 var(--u-font-code);
+
+    /* ── doc scale: consumed by doc scope, not reset ── */
+    --u-doc-display: 900 2.625rem/1.1 var(--u-font-heading);
+    --u-doc-h1:      700 2rem/1.2 var(--u-font-heading);
+    --u-doc-h2:      700 1.5rem/1.25 var(--u-font-heading);
+    --u-doc-h3:      700 1.1875rem/1.35 var(--u-font-heading);
+    --u-doc-body:    400 1rem/1.55 var(--u-font-body);
+    --u-doc-body-sm: 400 0.9375rem/1.5 var(--u-font-body);
+    --u-doc-caption: 400 0.8125rem/1.4 var(--u-font-body);
+
+    /* ── ui scale ── */
+    --u-ui-h3:      600 1.0625rem/1.3 var(--u-font-body);
+    --u-ui-h4:      600 0.875rem/1.35 var(--u-font-body);
+    --u-ui-body:    400 0.75rem/1.5 var(--u-font-body);
+    --u-ui-caption: 500 0.6875rem/1.4 var(--u-font-body);
+
+    /* ── chrome / mono scale ── */
+    --u-ui-stat:  600 1.375rem/1.1 var(--u-font-code);
+    --u-ui-code:  400 0.75rem/1.5 var(--u-font-code);
+    --u-ui-tiny:  500 0.625rem/1.3 var(--u-font-code);
+    --u-ui-pill:  500 0.625rem/1 var(--u-font-code);
+    --u-ui-label: 500 0.5625rem/1 var(--u-font-code);
+
+    /* ── display / hero ── */
+    --u-txt-jumbo: 900 4rem/1.05 var(--u-font-heading);
+    --u-txt-hero:  800 3rem/1.08 var(--u-font-heading);
+  }
+
+  /* ── base: 12px, app-tight ── */
+  body { font: var(--u-ui-body); }
+
+  /* ── zero margins — components own spacing ── */
+  h1, h2, h3, h4, h5, h6,
+  p, ul, ol, blockquote, pre, table, details, figure, hr {
+    margin: 0;
+  }
+
+  /* ── headings ── */
+  h1, h2, h3, h4, h5, h6 { letter-spacing: -0.01em; }
+  h1 { font: var(--u-reset-h1); }
+  h2 { font: var(--u-reset-h2); }
+  h3 { font: var(--u-reset-h3); }
+  h4 { font: var(--u-reset-h4); }
+  h5 { font: var(--u-reset-h5); }
+  h6 { font: var(--u-reset-h6); text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
+
+  /* ── links ── */
+  a { color: inherit; text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
+
+  /* ── inline code ── */
+  code, kbd, samp { font-family: var(--u-font-code); font-size: 0.875em; }
+  kbd { font-size: 0.8em; }
+
+  /* ── code blocks ── */
+  pre { font: var(--u-ui-code); line-height: 1.55; overflow-x: auto; white-space: pre; tab-size: 2; }
+  pre code { font-size: inherit; }
+
+  /* ── blockquote ── */
+  blockquote { padding-left: 0.5em; border-left: 2px solid currentColor; opacity: 0.8; font-style: italic; }
+  blockquote cite { display: block; font-style: normal; font: var(--u-ui-caption); opacity: 0.6; }
+
+  /* ── lists ── */
+  ul, ol { padding-left: 1.2em; }
+
+  /* ── tables ── */
+  table { width: 100%; font: var(--u-ui-body); font-variant-numeric: tabular-nums; }
+  th { font: var(--u-ui-label); text-align: left; text-transform: uppercase; letter-spacing: 0.04em; padding: 0.25em 0.4em; border-bottom: 1px solid; }
+  td { padding: 0.2em 0.4em; border-bottom: 1px solid; }
+
+  /* ── details ── */
+  summary { cursor: pointer; font: var(--u-reset-h4); }
+
+  /* ── small / figcaption ── */
+  small { font: var(--u-ui-caption); }
+  figcaption { font: var(--u-ui-caption); font-style: italic; opacity: 0.6; }
+
+  /* ── mark ── */
+  mark { padding: 0.02em 0.15em; border-radius: 2px; }
+
+  /* ── abbr ── */
+  abbr[title] { text-decoration: underline dotted; text-underline-offset: 2px; cursor: help; }
+
+  /* ── hr ── */
+  hr { border: none; height: 1px; background: currentColor; opacity: 0.15; }
+}
+
+/* ── tier 2: unity premium fonts ── */
+@layer unity {
+  :root {
+    --u-font-sans:  'Inter', Roboto, 'Helvetica Neue', Helvetica, sans-serif;
+    --u-font-serif: 'Lora', Charter, Georgia, serif;
+    --u-font-mono:  'JetBrains Mono', Menlo, Consolas, monospace;
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — icons.css
+   Icon sizing tokens. Rem-based with px fallback comments.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer reset {
+  :root {
+    --u-icon-xs:  0.875rem;  /* ~14px */
+    --u-icon-sm:  1rem;      /* ~16px */
+    --u-icon:     1.25rem;   /* ~20px */
+    --u-icon-lg:  1.5rem;    /* ~24px */
+    --u-icon-xl:  2rem;      /* ~32px */
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — elevation.css
+   Shadow scale + z-index layers.
+   Dark mode gets heavier shadows automatically via scales.css
+   depth system — these are additive for components that need lift.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer reset {
+  :root {
+    /* ── shadows: light mode defaults ── */
+    --u-shadow-sm:  0 1px 3px  color-mix(in srgb, #000  8%, transparent),
+                    0 1px 2px  color-mix(in srgb, #000  5%, transparent);
+    --u-shadow:     0 4px 12px color-mix(in srgb, #000 10%, transparent),
+                    0 2px 4px  color-mix(in srgb, #000  6%, transparent);
+    --u-shadow-lg:  0 12px 32px color-mix(in srgb, #000 14%, transparent),
+                    0 4px  12px color-mix(in srgb, #000  8%, transparent);
+    --u-shadow-xl:  0 24px 48px color-mix(in srgb, #000 18%, transparent),
+                    0 8px  16px color-mix(in srgb, #000 10%, transparent);
+
+    /* ── focus ring: defined in surfaces.css ── */
+
+    /* ── z-index scale ── */
+    --u-z-dropdown: 100;
+    --u-z-sticky:   200;
+    --u-z-overlay:  300;
+    --u-z-modal:    400;
+    --u-z-toast:    500;
+    --u-z-tooltip:  600;
+  }
+
+  /* ── dark: heavier shadows ── */
+  [data-theme="dark"] {
+    --u-shadow-sm:  0 1px 3px  color-mix(in srgb, #000 20%, transparent),
+                    0 1px 2px  color-mix(in srgb, #000 12%, transparent);
+    --u-shadow:     0 4px 12px color-mix(in srgb, #000 28%, transparent),
+                    0 2px 4px  color-mix(in srgb, #000 16%, transparent);
+    --u-shadow-lg:  0 12px 32px color-mix(in srgb, #000 38%, transparent),
+                    0 4px  12px color-mix(in srgb, #000 22%, transparent),
+                    0 0 0 1px color-mix(in srgb, #fff 6%, transparent);
+    --u-shadow-xl:  0 24px 48px color-mix(in srgb, #000 50%, transparent),
+                    0 8px  16px color-mix(in srgb, #000 28%, transparent),
+                    0 0 0 1px color-mix(in srgb, #fff 7%, transparent);
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — colors.css
+   Rainbow palette + phased colors + status semantics.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+
+   Registers:
+     canon  = solid bg + white text
+     light  = pastel (decorative fills, tinted surfaces)
+     dark   = deep emphasis (text on light bg, borders)
+     wash   = canon @ 25% into transparent
+
+   Phased (--u-ph-*):
+     Mode-aware colors that flip automatically.
+     Light mode → dark register (legible on light surfaces)
+     Dark mode  → canon register (pops on dark surfaces)
+     Use phased for any color that needs to work in both modes.
+
+   Status (--u-ok, --u-err, etc):
+     Semantic mappings built on phased — flip for free.
+
+   Spectral order:
+     red → orange → yellow → green → teal →
+     blue → indigo → purple → pink → salmon
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer unity {
+  :root {
+    /* ── canon: solid bg + white text ── */
+    --u-red:       #FB6460;
+    --u-orange:    #ffa64d;
+    --u-yellow:    #F1D431;
+    --u-green:     #46C850;
+    --u-teal:      #14cab8;
+    --u-blue:      #468CFA;
+    --u-indigo:    #6464F0;
+    --u-purple:    #8b6fd4;
+    --u-pink:      #E375C1;
+    --u-salmon:    #EFA798;
+
+    /* ── light: pastels, decorative fills ── */
+    --u-red-light:     #FFB4B4;
+    --u-orange-light:  #FFD0A0;
+    --u-yellow-light:  #FFEF99;
+    --u-green-light:   #D2FFC7;
+    --u-teal-light:    #A0EBEB;
+    --u-blue-light:    #B6DAFF;
+    --u-indigo-light:  #AFAFFF;
+    --u-purple-light:  #C1AAFF;
+    --u-pink-light:    #FFBCEA;
+    --u-salmon-light:  #FFDBD3;
+
+    /* ── dark: text on light bg, borders, emphasis ── */
+    --u-red-dark:      #AC312F;
+    --u-orange-dark:   #CA7316;
+    --u-yellow-dark:   #C2A93D;
+    --u-green-dark:    #1E8228;
+    --u-teal-dark:     #0A645A;
+    --u-blue-dark:     #1E50AA;
+    --u-indigo-dark:   #323CAA;
+    --u-purple-dark:   #503282;
+    --u-pink-dark:     #A2287E;
+    --u-salmon-dark:   #AD695B;
+
+    /* ── wash: canon @ 25% opacity ── */
+    --u-red-wash:      color-mix(in srgb, var(--u-red) 25%, transparent);
+    --u-orange-wash:   color-mix(in srgb, var(--u-orange) 25%, transparent);
+    --u-yellow-wash:   color-mix(in srgb, var(--u-yellow) 25%, transparent);
+    --u-green-wash:    color-mix(in srgb, var(--u-green) 25%, transparent);
+    --u-teal-wash:     color-mix(in srgb, var(--u-teal) 25%, transparent);
+    --u-blue-wash:     color-mix(in srgb, var(--u-blue) 25%, transparent);
+    --u-indigo-wash:   color-mix(in srgb, var(--u-indigo) 25%, transparent);
+    --u-purple-wash:   color-mix(in srgb, var(--u-purple) 25%, transparent);
+    --u-pink-wash:     color-mix(in srgb, var(--u-pink) 25%, transparent);
+    --u-salmon-wash:   color-mix(in srgb, var(--u-salmon) 25%, transparent);
+
+    /* ── wash borders: canon register ── */
+    --u-red-wash-border:      var(--u-red);
+    --u-orange-wash-border:   var(--u-orange);
+    --u-yellow-wash-border:   var(--u-yellow);
+    --u-green-wash-border:    var(--u-green);
+    --u-teal-wash-border:     var(--u-teal);
+    --u-blue-wash-border:     var(--u-blue);
+    --u-indigo-wash-border:   var(--u-indigo);
+    --u-purple-wash-border:   var(--u-purple);
+    --u-pink-wash-border:     var(--u-pink);
+    --u-salmon-wash-border:   var(--u-salmon);
+
+    /* ── light-register borders: canon register ── */
+    --u-red-light-border:     var(--u-red);
+    --u-orange-light-border:  var(--u-orange);
+    --u-yellow-light-border:  var(--u-yellow);
+    --u-green-light-border:   var(--u-green);
+    --u-teal-light-border:    var(--u-teal);
+    --u-blue-light-border:    var(--u-blue);
+    --u-indigo-light-border:  var(--u-indigo);
+    --u-purple-light-border:  var(--u-purple);
+    --u-pink-light-border:    var(--u-pink);
+    --u-salmon-light-border:  var(--u-salmon);
+
+    /* ── phased: light mode → dark register ── */
+    --u-ph-red:       var(--u-red-dark);
+    --u-ph-orange:    var(--u-orange-dark);
+    --u-ph-yellow:    var(--u-yellow-dark);
+    --u-ph-green:     var(--u-green-dark);
+    --u-ph-teal:      var(--u-teal-dark);
+    --u-ph-blue:      var(--u-blue-dark);
+    --u-ph-indigo:    var(--u-indigo-dark);
+    --u-ph-purple:    var(--u-purple-dark);
+    --u-ph-pink:      var(--u-pink-dark);
+    --u-ph-salmon:    var(--u-salmon-dark);
+
+    /* ── accent ── */
+    --u-accent:    oklch(0.55 0.22 250);
+    --u-accent-fg: #ffffff;
+
+    /* ── status: built on phased — flip for free ── */
+    --u-ok:   var(--u-ph-green);
+    --u-warn: var(--u-ph-orange);
+    --u-err:  var(--u-ph-red);
+    --u-info: var(--u-ph-blue);
+
+    /* ── status surfaces: wash register ── */
+    --u-ok-surface:   var(--u-green-wash);
+    --u-warn-surface: var(--u-orange-wash);
+    --u-err-surface:  var(--u-red-wash);
+    --u-info-surface: var(--u-blue-wash);
+
+    /* ── status fg: same as status (phased handles legibility) ── */
+    --u-ok-fg:   var(--u-ok);
+    --u-warn-fg: var(--u-warn);
+    --u-err-fg:  var(--u-err);
+    --u-info-fg: var(--u-info);
+
+    /* ── absolutes: never themed ── */
+    --pure-white: #fff;
+    --pure-black: #000;
+  }
+
+  /* ── dark mode: phased flips to canon register ── */
+  [data-theme="dark"] {
+    --u-ph-red:       var(--u-red);
+    --u-ph-orange:    var(--u-orange);
+    --u-ph-yellow:    var(--u-yellow);
+    --u-ph-green:     var(--u-green);
+    --u-ph-teal:      var(--u-teal);
+    --u-ph-blue:      var(--u-blue);
+    --u-ph-indigo:    var(--u-indigo);
+    --u-ph-purple:    var(--u-purple);
+    --u-ph-pink:      var(--u-pink);
+    --u-ph-salmon:    var(--u-salmon);
+
+    /* ── accent: lifted for dark ── */
+    --u-accent: oklch(0.66 0.20 250);
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — scales.css
+   Grey scale + tinted depth + border system
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+
+   Grey:   12-step static neutral ramp. No tint. Never flips.
+   Depth:  8-step tinted surface ramp. Flips in dark mode.
+           Used as a shading tool — mix any color into depth
+           for chromatic surfaces with dark mode dynamics.
+   Border: 8-step shifted from depth. Guaranteed contrast
+           against its paired depth step.
+
+   Tint system:
+   - --tint / --tint-c     = light mode hue + chroma
+   - --tint-i / --tint-i-c = dark mode hue + chroma
+   Override tint vars in @layer sys to re-skin the surface feel.
+
+   Usage:
+   .u-card {
+     --card-bg: var(--depth-1);
+     --card-border: var(--border-1);
+     background: var(--card-bg);
+     border: 1px solid var(--card-border);
+   }
+
+   Chromatic surface:
+     background: color-mix(in oklch, var(--u-blue), var(--depth-1) 85%);
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer unity {
+  :root {
+    /* ── tint: override in @layer sys to re-skin ── */
+    --tint: 203;
+    --tint-c: 0.003;
+    --tint-i: 270;
+    --tint-i-c: 0.021;
+
+    /* ── grey: 12 steps, static, untinted ── */
+    --grey-0:  oklch(0.97 0 0);
+    --grey-1:  oklch(0.93 0 0);
+    --grey-2:  oklch(0.88 0 0);
+    --grey-3:  oklch(0.82 0 0);
+    --grey-4:  oklch(0.74 0 0);
+    --grey-5:  oklch(0.64 0 0);
+    --grey-6:  oklch(0.52 0 0);
+    --grey-7:  oklch(0.40 0 0);
+    --grey-8:  oklch(0.30 0 0);
+    --grey-9:  oklch(0.22 0 0);
+    --grey-10: oklch(0.13 0 0);
+    --grey-11: oklch(0.05 0 0);
+
+    /* ── depth: light mode (curve: 1.61) ── */
+    --depth-0: oklch(0.99   var(--tint-c) var(--tint));
+    --depth-1: oklch(0.9808 var(--tint-c) var(--tint));
+    --depth-2: oklch(0.9621 var(--tint-c) var(--tint));
+    --depth-3: oklch(0.9363 var(--tint-c) var(--tint));
+    --depth-4: oklch(0.9047 var(--tint-c) var(--tint));
+    --depth-5: oklch(0.8678 var(--tint-c) var(--tint));
+    --depth-6: oklch(0.8262 var(--tint-c) var(--tint));
+    --depth-7: oklch(0.78   var(--tint-c) var(--tint));
+
+    /* ── border: light mode (shift: -0.06) ── */
+    --border-0: oklch(0.93   var(--tint-c) var(--tint));
+    --border-1: oklch(0.9208 var(--tint-c) var(--tint));
+    --border-2: oklch(0.9021 var(--tint-c) var(--tint));
+    --border-3: oklch(0.8763 var(--tint-c) var(--tint));
+    --border-4: oklch(0.8447 var(--tint-c) var(--tint));
+    --border-5: oklch(0.8078 var(--tint-c) var(--tint));
+    --border-6: oklch(0.7662 var(--tint-c) var(--tint));
+    --border-7: oklch(0.72   var(--tint-c) var(--tint));
+  }
+
+  [data-theme="dark"] {
+    /* ── depth: dark mode (curve: 0.58) ── */
+    --depth-0: oklch(0.1    var(--tint-i-c) var(--tint-i));
+    --depth-1: oklch(0.1712 var(--tint-i-c) var(--tint-i));
+    --depth-2: oklch(0.2064 var(--tint-i-c) var(--tint-i));
+    --depth-3: oklch(0.2346 var(--tint-i-c) var(--tint-i));
+    --depth-4: oklch(0.259  var(--tint-i-c) var(--tint-i));
+    --depth-5: oklch(0.281  var(--tint-i-c) var(--tint-i));
+    --depth-6: oklch(0.3012 var(--tint-i-c) var(--tint-i));
+    --depth-7: oklch(0.32   var(--tint-i-c) var(--tint-i));
+
+    /* ── border: dark mode (shift: +0.06) ── */
+    --border-0: oklch(0.16   var(--tint-i-c) var(--tint-i));
+    --border-1: oklch(0.2312 var(--tint-i-c) var(--tint-i));
+    --border-2: oklch(0.2664 var(--tint-i-c) var(--tint-i));
+    --border-3: oklch(0.2946 var(--tint-i-c) var(--tint-i));
+    --border-4: oklch(0.319  var(--tint-i-c) var(--tint-i));
+    --border-5: oklch(0.341  var(--tint-i-c) var(--tint-i));
+    --border-6: oklch(0.3612 var(--tint-i-c) var(--tint-i));
+    --border-7: oklch(0.38   var(--tint-i-c) var(--tint-i));
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — surfaces.css
+   Semantic surface mapping. Bridges scales.css → component tokens.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+
+   Everything built on --u-bg, --u-surface, --u-fg, --u-border
+   reads from this file. This is the API components consume.
+
+   Surfaces + borders → depth/border ramp (scales.css)
+   Text → tinted values at opposite lightness end
+   Focus ring → accent (colors.css)
+
+   Requires: scales.css (depth, border, grey, tint vars)
+             colors.css (accent)
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer unity {
+  :root {
+    /* ── surfaces: from depth ramp ── */
+    --u-bg:        var(--depth-0);
+    --u-surface:   var(--depth-1);
+    --u-surface-2: var(--depth-2);
+
+    /* ── borders: from border ramp ── */
+    --u-border:    var(--border-1);
+    --u-border-2:  var(--border-3);
+
+    /* ── text: tinted, opposite end from surfaces ──
+         light mode = dark text on light bg
+         uses --tint hue for cohesion with surfaces */
+    --u-fg:        oklch(0.09  var(--tint-c) var(--tint));
+    --u-fg-muted:  oklch(0.44  var(--tint-c) var(--tint));
+    --u-fg-dim:    oklch(0.65  var(--tint-c) var(--tint));
+
+    /* ── focus ring ── */
+    --u-focus-ring: 0 0 0 2px var(--u-bg), 0 0 0 4px var(--u-accent);
+  }
+
+  [data-theme="dark"] {
+    /* ── text: flipped — light text on dark bg ──
+         uses --tint-i hue for bedtime cohesion */
+    --u-fg:        oklch(0.93  var(--tint-i-c) var(--tint-i));
+    --u-fg-muted:  oklch(0.60  var(--tint-i-c) var(--tint-i));
+    --u-fg-dim:    oklch(0.38  var(--tint-i-c) var(--tint-i));
+  }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — utility.css
+   Utility vars + classes. Lean helpers, not a framework.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+
+   Conventions:
+   - .u- prefix on all utility classes
+   - Utilities are additive — they don't reset anything
+   - Prefer vars in component var maps; use classes for one-offs
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer unity {
+
+  /* ── measure constraints ── */
+  .u-measure     { max-width: var(--u-type-measure, 65ch); }
+  .u-measure-doc { max-width: var(--u-max-doc, 42rem); }
+  .u-measure-content { max-width: var(--u-max-content, 72rem); }
+
+  /* ── text ── */
+  .u-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .u-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .u-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .u-nowrap     { white-space: nowrap; }
+  .u-break-word { overflow-wrap: break-word; }
+  .u-tabular    { font-variant-numeric: tabular-nums; }
+  .u-uppercase  { text-transform: uppercase; letter-spacing: 0.04em; }
+  .u-center     { text-align: center; }
+  .u-right      { text-align: right; }
+
+  /* ── display ── */
+  .u-hidden     { display: none; }
+  .u-block      { display: block; }
+  .u-flex       { display: flex; }
+  .u-grid       { display: grid; }
+  .u-inline     { display: inline; }
+  .u-inline-flex { display: inline-flex; }
+
+  /* ── flex shortcuts ── */
+  .u-row        { display: flex; align-items: center; gap: var(--u-space-2, 0.5rem); }
+  .u-col        { display: flex; flex-direction: column; gap: var(--u-space-2, 0.5rem); }
+  .u-wrap       { flex-wrap: wrap; }
+  .u-gap-0      { gap: 0; }
+  .u-gap-1      { gap: var(--u-space-1, 0.25rem); }
+  .u-gap-2      { gap: var(--u-space-2, 0.5rem); }
+  .u-gap-3      { gap: var(--u-space-3, 0.75rem); }
+  .u-gap-4      { gap: var(--u-space-4, 1rem); }
+  .u-push       { margin-left: auto; }
+  .u-stretch    { flex: 1; min-width: 0; }
+
+  /* ── alignment ── */
+  .u-items-start   { align-items: flex-start; }
+  .u-items-center  { align-items: center; }
+  .u-items-end     { align-items: flex-end; }
+  .u-justify-between { justify-content: space-between; }
+  .u-justify-center  { justify-content: center; }
+  .u-center-xy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── overflow ── */
+  .u-overflow-hidden { overflow: hidden; }
+  .u-overflow-auto   { overflow: auto; }
+  .u-scroll-x       { overflow-x: auto; overflow-y: hidden; }
+  .u-scroll-y       { overflow-y: auto; overflow-x: hidden; }
+
+  /* ── sizing ── */
+  .u-w-full { width: 100%; }
+  .u-h-full { height: 100%; }
+  .u-min-0  { min-width: 0; min-height: 0; }
+
+  /* ── position ── */
+  .u-relative { position: relative; }
+  .u-absolute { position: absolute; }
+  .u-sticky   { position: sticky; top: 0; }
+  .u-fixed    { position: fixed; }
+  .u-inset-0  { inset: 0; }
+
+  /* ── a11y ── */
+  .u-sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  .u-focus-ring:focus-visible {
+    outline: none;
+    box-shadow: var(--u-focus-ring);
+  }
+  .u-no-select { user-select: none; }
+  .u-pointer   { cursor: pointer; }
+
+  /* ── radius shortcuts ── */
+  .u-round      { border-radius: var(--u-radius, 0.375rem); }
+  .u-round-lg   { border-radius: var(--u-radius-lg, 0.625rem); }
+  .u-round-full { border-radius: var(--u-radius-full, 999px); }
+  .u-round-none { border-radius: 0; }
+
+  /* ── opacity ── */
+  .u-dim    { opacity: 0.5; }
+  .u-faint  { opacity: 0.3; }
+  .u-ghost  { opacity: 0.15; }
+}
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — typography-doc.css
+   Document reading scope. Generous spacing, larger sizes.
+   Apply via .u-doc class or [data-type="doc"] on a container.
+   © Jelly — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+
+   Consumes --u-doc-* vars from typography.css.
+   Adds --u-doc-scale multiplier for proportional zoom.
+   Adds --u-doc-font for swappable reading face.
+
+   Usage (light DOM):
+     <article class="u-doc">
+       <h1>Title</h1>
+       <p>Reading text...</p>
+     </article>
+
+   Usage (shadow DOM):
+     :host { font: var(--u-doc-body); }
+     — component picks from the doc vars directly
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer unity {
+
+  /* ── doc scope vars ── */
+  .u-doc,
+  [data-type="doc"] {
+    --u-doc-font:  var(--u-font-serif);
+    --u-doc-scale: 1;
+    --u-doc-flow:  1.2em;
+
+    /* scope resets */
+    max-width: var(--u-max-doc, 42rem);
+    font-family: var(--u-doc-font);
+    font-size: calc(1rem * var(--u-doc-scale));
+    line-height: 1.78;
+    color: var(--u-fg);
+    overflow-wrap: break-word;
+  }
+
+  /* ── headings ── */
+  .u-doc h1,
+  [data-type="doc"] h1 {
+    font: 700 calc(2rem * var(--u-doc-scale))/1.15 var(--u-doc-font);
+    margin: 0 0 0.6em;
+    letter-spacing: -0.02em;
+  }
+
+  .u-doc h2,
+  [data-type="doc"] h2 {
+    font: 700 calc(1.45rem * var(--u-doc-scale))/1.25 var(--u-doc-font);
+    margin: 1.8em 0 0.5em;
+    padding-bottom: 0.25em;
+    border-bottom: 1px solid var(--u-border, currentColor);
+  }
+
+  .u-doc h3,
+  [data-type="doc"] h3 {
+    font: 600 calc(1.15rem * var(--u-doc-scale))/1.35 var(--u-doc-font);
+    margin: 1.5em 0 0.4em;
+  }
+
+  .u-doc h4,
+  [data-type="doc"] h4 {
+    font: 600 calc(0.9rem * var(--u-doc-scale))/1.4 var(--u-font-body);
+    color: var(--u-fg-muted, inherit);
+    margin: 1.2em 0 0.3em;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── flow spacing ── */
+  .u-doc p,
+  .u-doc ul,
+  .u-doc ol,
+  .u-doc blockquote,
+  .u-doc pre,
+  .u-doc table,
+  .u-doc details,
+  .u-doc figure,
+  .u-doc hr,
+  [data-type="doc"] p,
+  [data-type="doc"] ul,
+  [data-type="doc"] ol,
+  [data-type="doc"] blockquote,
+  [data-type="doc"] pre,
+  [data-type="doc"] table,
+  [data-type="doc"] details,
+  [data-type="doc"] figure,
+  [data-type="doc"] hr {
+    margin: 0 0 var(--u-doc-flow);
+  }
+
+  /* ── lead paragraph ── */
+  .u-doc .doc-lead,
+  [data-type="doc"] .doc-lead {
+    font-size: calc(1.1rem * var(--u-doc-scale));
+    color: var(--u-fg-muted, inherit);
+  }
+
+  /* ── dateline / meta ── */
+  .u-doc .doc-meta,
+  [data-type="doc"] .doc-meta {
+    font: 400 calc(0.85rem * var(--u-doc-scale)) var(--u-font-body);
+    color: var(--u-fg-dim, inherit);
+    margin-bottom: 0.3em;
+  }
+
+  /* ── links ── */
+  .u-doc a,
+  [data-type="doc"] a {
+    color: var(--u-accent, inherit);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+  }
+
+  /* ── inline code ── */
+  .u-doc code,
+  [data-type="doc"] code {
+    font: calc(0.85em) var(--u-font-code);
+    background: var(--u-surface-2, rgba(0,0,0,0.05));
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+  }
+
+  /* ── code blocks ── */
+  .u-doc pre,
+  [data-type="doc"] pre {
+    border-radius: 0.625rem;
+    padding: 1em 1.2em;
+    overflow-x: auto;
+    font: calc(0.8rem * var(--u-doc-scale))/1.6 var(--u-font-code);
+  }
+  .u-doc pre code,
+  [data-type="doc"] pre code {
+    font-size: inherit;
+    background: none;
+    padding: 0;
+  }
+
+  /* ── kbd ── */
+  .u-doc kbd,
+  [data-type="doc"] kbd {
+    font: 500 calc(0.75em) var(--u-font-code);
+    background: var(--u-surface, rgba(0,0,0,0.03));
+    border: 1px solid var(--u-border, currentColor);
+    border-bottom-width: 2px;
+    padding: 0.1em 0.4em;
+    border-radius: 4px;
+    color: var(--u-fg-muted, inherit);
+  }
+
+  /* ── blockquote ── */
+  .u-doc blockquote,
+  [data-type="doc"] blockquote {
+    border-left: 3px solid var(--u-accent, currentColor);
+    padding: 0.5em 1em;
+    background: color-mix(in srgb, var(--u-accent, gray) 4%, transparent);
+    border-radius: 0 0.375rem 0.375rem 0;
+    font-style: italic;
+    opacity: 1;
+  }
+  .u-doc blockquote p,
+  [data-type="doc"] blockquote p {
+    margin-bottom: 0.4em;
+    color: var(--u-fg-muted, inherit);
+  }
+  .u-doc blockquote cite,
+  [data-type="doc"] blockquote cite {
+    font: 500 calc(0.8rem * var(--u-doc-scale)) var(--u-font-body);
+    color: var(--u-fg-dim, inherit);
+    font-style: normal;
+  }
+
+  /* ── lists ── */
+  .u-doc ul,
+  .u-doc ol,
+  [data-type="doc"] ul,
+  [data-type="doc"] ol {
+    padding-left: 1.5em;
+  }
+  .u-doc li,
+  [data-type="doc"] li {
+    margin-bottom: 0.3em;
+  }
+  .u-doc li::marker,
+  [data-type="doc"] li::marker {
+    color: var(--u-fg-dim, inherit);
+  }
+
+  /* ── tables ── */
+  .u-doc table,
+  [data-type="doc"] table {
+    width: 100%;
+    font-size: calc(0.9rem * var(--u-doc-scale));
+  }
+  .u-doc th,
+  [data-type="doc"] th {
+    font: 600 calc(0.78rem * var(--u-doc-scale)) var(--u-font-body);
+    text-align: left;
+    padding: 0.5em 0.6em;
+    border-bottom: 2px solid var(--u-border, currentColor);
+    color: var(--u-fg-muted, inherit);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .u-doc td,
+  [data-type="doc"] td {
+    padding: 0.5em 0.6em;
+    border-bottom: 1px solid var(--u-border, currentColor);
+  }
+
+  /* ── mark ── */
+  .u-doc mark,
+  [data-type="doc"] mark {
+    background: color-mix(in srgb, var(--u-yellow, #ffe13f) 35%, transparent);
+    padding: 0.05em 0.2em;
+    border-radius: 2px;
+  }
+  .u-doc mark.doc-accent,
+  [data-type="doc"] mark.doc-accent {
+    background: color-mix(in srgb, var(--u-accent, gray) 18%, transparent);
+  }
+  .u-doc mark.doc-err,
+  [data-type="doc"] mark.doc-err {
+    background: color-mix(in srgb, var(--u-err, red) 18%, transparent);
+  }
+
+  /* ── hr ── */
+  .u-doc hr,
+  [data-type="doc"] hr {
+    background: var(--u-border, currentColor);
+    margin: 2em 0;
+    opacity: 1;
+    height: 1px;
+  }
+
+  /* ── details ── */
+  .u-doc summary,
+  [data-type="doc"] summary {
+    font: 600 calc(0.9rem * var(--u-doc-scale))/1.35 var(--u-doc-font);
+  }
+
+  /* ── figcaption ── */
+  .u-doc figcaption,
+  [data-type="doc"] figcaption {
+    font: 400 calc(0.8rem * var(--u-doc-scale)) var(--u-font-body);
+    font-style: italic;
+    color: var(--u-fg-dim, inherit);
+    margin-top: 0.4em;
+  }
+
+  /* ── callouts ── */
+  .u-doc .doc-callout,
+  [data-type="doc"] .doc-callout {
+    padding: 0.7em 1em;
+    border-radius: 0.375rem;
+    display: flex;
+    gap: 0.5em;
+    align-items: flex-start;
+    font-size: calc(0.9rem * var(--u-doc-scale));
+    line-height: 1.6;
+  }
+  .u-doc .doc-callout.info  { background: var(--u-info-surface); color: var(--u-info-fg);  border-left: 3px solid var(--u-info); }
+  .u-doc .doc-callout.warn  { background: var(--u-warn-surface); color: var(--u-warn-fg);  border-left: 3px solid var(--u-warn); }
+  .u-doc .doc-callout.err   { background: var(--u-err-surface);  color: var(--u-err-fg);   border-left: 3px solid var(--u-err); }
+  .u-doc .doc-callout.tip   { background: var(--u-ok-surface);   color: var(--u-ok-fg);    border-left: 3px solid var(--u-ok); }
+  .u-doc .doc-callout .doc-callout-icon { flex: none; font-size: 1.1em; }
+
+  /* ── TOC ── */
+  .u-doc .doc-toc,
+  [data-type="doc"] .doc-toc {
+    background: var(--u-surface, rgba(0,0,0,0.03));
+    border: 1px solid var(--u-border, currentColor);
+    border-radius: 0.625rem;
+    padding: 1em 1.2em;
+    margin: 0 0 1.5em;
+  }
+  .u-doc .doc-toc-title,
+  [data-type="doc"] .doc-toc-title {
+    font: var(--u-ui-label);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--u-fg-muted, inherit);
+    margin-bottom: 0.5em;
+  }
+  .u-doc .doc-toc ol,
+  [data-type="doc"] .doc-toc ol {
+    list-style: none;
+    padding: 0;
+    counter-reset: toc;
+    margin: 0;
+  }
+  .u-doc .doc-toc li,
+  [data-type="doc"] .doc-toc li {
+    counter-increment: toc;
+    margin-bottom: 0.25em;
+  }
+  .u-doc .doc-toc li::before,
+  [data-type="doc"] .doc-toc li::before {
+    content: counters(toc, ".") " ";
+    font: var(--u-ui-tiny);
+    color: var(--u-fg-dim, inherit);
+    margin-right: 0.3em;
+  }
+  .u-doc .doc-toc a,
+  [data-type="doc"] .doc-toc a {
+    font-size: calc(0.9rem * var(--u-doc-scale));
+    text-decoration: none;
+  }
+
+  /* ── syntax highlighting: code block token classes ── */
+  .u-doc pre .kw, [data-type="doc"] pre .kw { color: var(--u-indigo, #6464F0); }
+  .u-doc pre .fn, [data-type="doc"] pre .fn { color: var(--u-green, #46C850); }
+  .u-doc pre .st, [data-type="doc"] pre .st { color: var(--u-orange, #ffa64d); }
+  .u-doc pre .cm, [data-type="doc"] pre .cm { color: var(--u-fg-dim, #666); }
+  .u-doc pre .tp, [data-type="doc"] pre .tp { color: var(--u-teal, #14cab8); }
+  .u-doc pre .nr, [data-type="doc"] pre .nr { color: var(--u-salmon, #EFA798); }
+}

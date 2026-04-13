@@ -1,0 +1,339 @@
+/* ═══════════════════════════════════════════════════════════════
+   Unity DS — lab.css
+   Lab chrome: the demo/catalogue stage environment.
+   Fully isolated from DS tokens. Uses --lab-* vars and lab-* classes.
+   © Meerkat — Proprietary. SPDX-License-Identifier: LicenseRef-Proprietary-Meerkat
+
+   The lab is a neutral viewing stage for DS components.
+   Lab chrome reads --lab-* vars only. DS components inside
+   lab-comp cards read --u-* vars only. Zero bleed.
+
+   Theme control:
+   - data-lab-theme="light|dark" on <body> → lab chrome
+   - data-theme="light|dark" on <html> → DS cascade
+   - data-theme="light|dark" on .lab-comp → per-card DS override
+   - Sync locks lab + DS toggles together
+
+   Setup (JS):
+   - toggleLab()  → flips lab chrome
+   - toggleDS()   → flips DS content
+   - toggleSync() → locks/unlocks them
+   - applyDS()    → sets data-theme on html + all .lab-comp
+   - Call applyDS() on init
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Lab vars ── */
+:root {
+  --lab-font-ui: 'Inter', system-ui, sans-serif;
+  --lab-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+body[data-lab-theme="light"] {
+  --lab-bg: #fff;
+  --lab-text: #999;
+  --lab-text-hi: #555;
+  --lab-border: #ddd;
+  --lab-pill-bg: #eeeef0;
+  --lab-accent: #468CFA;
+  --lab-panel-bg: rgba(255, 255, 255, 0.92);
+  --lab-panel-border: rgba(0, 0, 0, 0.08);
+}
+
+body[data-lab-theme="dark"] {
+  --lab-bg: #292d31;
+  --lab-text: #666;
+  --lab-text-hi: #bbb;
+  --lab-border: #333;
+  --lab-pill-bg: #1c1c1e;
+  --lab-accent: #468CFA;
+  --lab-panel-bg: rgba(28, 28, 30, 0.92);
+  --lab-panel-border: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Lab base ── */
+body {
+  background: var(--lab-bg);
+  color: var(--lab-text);
+  padding: 20px 24px;
+  min-height: 100vh;
+  transition: background 150ms, color 150ms;
+}
+
+/* ── Page header ── */
+.lab-head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.lab-head h1 {
+  font: 500 10px var(--lab-font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lab-text);
+}
+.lab-head h1 span { color: var(--lab-text-hi); }
+
+/* ── Section dividers ── */
+.lab-s {
+  font: 500 9px var(--lab-font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--lab-text);
+  margin: 24px 0 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--lab-border);
+}
+.lab-s:first-of-type { margin-top: 0; }
+.lab-s em { color: var(--lab-text-hi); font-style: normal; }
+
+/* ═══ FLOAT PANEL ═══ */
+.lab-panel {
+  position: fixed;
+  z-index: 9999;
+  border-radius: 14px;
+  background: var(--lab-panel-bg);
+  border: 1px solid var(--lab-panel-border);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18), 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  user-select: none;
+  transition: border-radius 200ms;
+}
+
+/* panel head — drag handle */
+.lab-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  cursor: grab;
+  border-bottom: 1px solid var(--lab-panel-border);
+  min-height: 36px;
+}
+.lab-panel-head:active { cursor: grabbing; }
+
+.lab-panel-icon {
+  width: 18px; height: 18px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; color: var(--lab-accent); flex-shrink: 0;
+}
+.lab-panel-title {
+  font: 600 9px var(--lab-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lab-text-hi);
+  white-space: nowrap;
+}
+
+/* panel toggles */
+.lab-panel-toggles {
+  display: flex; align-items: center; gap: 6px; margin-left: auto;
+}
+.lab-panel-toggle-pair {
+  display: flex; align-items: center; gap: 3px;
+}
+.lab-panel-toggle-pair .lab-tl {
+  font: 500 8px var(--lab-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lab-text);
+}
+
+/* panel buttons */
+.lab-panel-tbtn {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 50%;
+  cursor: pointer; font-size: 12px; line-height: 1;
+  color: var(--lab-text);
+  transition: background 150ms, color 150ms;
+}
+.lab-panel-tbtn:hover { background: var(--lab-accent); color: #fff; }
+.lab-panel-tbtn.sync-active { background: var(--lab-accent); color: #fff; }
+.lab-panel-tbtn.sync-active:hover { filter: brightness(1.15); }
+
+/* expand/collapse button */
+.lab-panel-expand {
+  width: 22px; height: 22px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; border-radius: 50%;
+  cursor: pointer; font-size: 14px; line-height: 1;
+  color: var(--lab-text);
+  transition: background 150ms, color 150ms;
+}
+.lab-panel-expand:hover { background: var(--lab-accent); color: #fff; }
+
+/* collapsed — tight bubble */
+.lab-panel.collapsed { width: auto; border-radius: 20px; }
+.lab-panel.collapsed .lab-panel-body {
+  max-height: 0; padding: 0; opacity: 0;
+  overflow: hidden; pointer-events: none;
+}
+.lab-panel.collapsed .lab-panel-head {
+  border-bottom: none; padding: 4px 6px; min-height: 0; gap: 3px;
+}
+.lab-panel.collapsed .lab-panel-title,
+.lab-panel.collapsed .lab-panel-icon,
+.lab-panel.collapsed .lab-tl { display: none; }
+
+/* panel body */
+.lab-panel-body {
+  padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 4px;
+  max-height: 55vh;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--lab-border) transparent;
+  transition: max-height 250ms ease, padding 250ms ease, opacity 200ms;
+}
+
+/* panel section label */
+.lab-panel-section {
+  font: 600 8px var(--lab-font-mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--lab-text);
+  padding: 3px 0 2px;
+  border-bottom: 1px solid var(--lab-panel-border);
+}
+
+/* panel control row */
+.lab-panel-row {
+  display: flex; align-items: center; gap: 5px;
+}
+.lab-panel-row label {
+  font: 500 8px var(--lab-font-mono);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--lab-text);
+  min-width: 40px;
+}
+.lab-panel-row input[type="range"] {
+  flex: 1; min-width: 50px;
+  accent-color: var(--lab-accent);
+}
+.lab-panel-row .lab-val-input {
+  width: 44px;
+  font: 500 9px var(--lab-font-mono);
+  color: var(--lab-text-hi);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  padding: 1px 4px;
+  text-align: right;
+  transition: border-color 150ms, background 150ms;
+  -moz-appearance: textfield;
+}
+.lab-panel-row .lab-val-input::-webkit-inner-spin-button,
+.lab-panel-row .lab-val-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+.lab-panel-row .lab-val-input:hover { border-color: var(--lab-panel-border); }
+.lab-panel-row .lab-val-input:focus {
+  outline: none;
+  border-color: var(--lab-accent);
+  background: var(--lab-panel-bg);
+}
+
+/* panel button bar */
+.lab-panel-bar { display: flex; gap: 3px; flex-wrap: wrap; }
+.lab-panel-bar-btn {
+  font: 500 8px var(--lab-font-mono);
+  padding: 3px 8px; border-radius: 4px;
+  background: transparent;
+  border: 1px solid var(--lab-panel-border);
+  color: var(--lab-text);
+  cursor: pointer;
+  transition: background 150ms, color 150ms, border-color 150ms;
+}
+.lab-panel-bar-btn:hover { border-color: var(--lab-accent); color: var(--lab-text-hi); }
+.lab-panel-bar-btn.active { background: var(--lab-accent); color: #fff; border-color: var(--lab-accent); }
+
+/* ═══ COMP CARDS — DS content container ═══ */
+.lab-comp {
+  border-radius: 10px;
+  overflow: visible;
+  background: var(--u-bg);
+  color: var(--u-fg);
+  transition: background 150ms, color 150ms;
+}
+.lab-comp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--u-surface);
+  border-bottom: 1px solid var(--u-border);
+  border-radius: 10px 10px 0 0;
+  font: 500 10px var(--lab-font-mono);
+  letter-spacing: 0.08em;
+  color: var(--u-fg-muted);
+  transition: background 150ms, border-color 150ms;
+}
+.lab-comp-header .lab-tag {
+  font: var(--u-ui-pill);
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--u-surface-2);
+  color: var(--u-fg-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.lab-comp-body {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--u-bg);
+  border-radius: 0 0 10px 10px;
+  transition: background 150ms;
+}
+
+/* ═══ GRID LAYOUTS ═══ */
+.lab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+.lab-grid-wide {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .lab-grid { grid-template-columns: 1fr; }
+}
+
+/* ═══ HELPERS ═══ */
+.lab-note {
+  font: 400 10px var(--u-font-body, var(--lab-font-ui));
+  color: var(--u-fg-dim);
+  line-height: 1.5;
+}
+.lab-note code {
+  font: var(--u-ui-code);
+  background: var(--u-surface-2);
+  padding: 0 3px;
+  border-radius: 2px;
+}
+.lab-sub {
+  font: var(--u-ui-label);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--u-fg-dim);
+}
+.lab-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.lab-attr {
+  display: inline-flex;
+  font: 400 9px var(--lab-font-mono);
+  background: var(--u-surface-2);
+  color: var(--u-fg-muted);
+  padding: 2px 6px;
+  border-radius: var(--u-radius, 0.375rem);
+  border: 1px solid var(--u-border);
+}
