@@ -1,0 +1,12 @@
+{
+  "name": "@r387/344ae011d546",
+  "version": "0.1.0",
+  "description": "assets",
+  "files": [
+    "css/",
+    "sfwc/"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}
