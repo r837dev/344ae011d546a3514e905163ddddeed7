@@ -474,17 +474,18 @@
     --u-pink-light-border:    var(--u-pink);
     --u-salmon-light-border:  var(--u-salmon);
 
-    /* ── phased: light mode → dark register ── */
-    --u-ph-red:       var(--u-red-dark);
-    --u-ph-orange:    var(--u-orange-dark);
-    --u-ph-yellow:    var(--u-yellow-dark);
-    --u-ph-green:     var(--u-green-dark);
-    --u-ph-teal:      var(--u-teal-dark);
-    --u-ph-blue:      var(--u-blue-dark);
-    --u-ph-indigo:    var(--u-indigo-dark);
-    --u-ph-purple:    var(--u-purple-dark);
-    --u-ph-pink:      var(--u-pink-dark);
-    --u-ph-salmon:    var(--u-salmon-dark);
+    /* light mode → canon (bright, vivid) */
+    --u-ph-red: var(--u-red);
+    --u-ph-orange: var(--u-orange);
+    --u-ph-yellow: var(--u-yellow);
+    --u-ph-green: var(--u-green);
+    --u-ph-teal: var(--u-teal);
+    --u-ph-blue: var(--u-blue);
+    --u-ph-indigo: var(--u-indigo);
+    --u-ph-purple: var(--u-purple);
+    --u-ph-pink: var(--u-pink);
+    --u-ph-salmon: var(--u-salmon);
+
 
     /* ── accent ── */
     --u-accent:    oklch(0.55 0.22 250);
@@ -515,21 +516,25 @@
 
   /* ── dark mode: phased flips to canon register ── */
   [data-theme="dark"] {
-    --u-ph-red:       var(--u-red);
-    --u-ph-orange:    var(--u-orange);
-    --u-ph-yellow:    var(--u-yellow);
-    --u-ph-green:     var(--u-green);
-    --u-ph-teal:      var(--u-teal);
-    --u-ph-blue:      var(--u-blue);
-    --u-ph-indigo:    var(--u-indigo);
-    --u-ph-purple:    var(--u-purple);
-    --u-ph-pink:      var(--u-pink);
-    --u-ph-salmon:    var(--u-salmon);
+    /* dark mode → dark register (deep, moody) */
+    --u-ph-red: var(--u-red-dark);
+    --u-ph-orange: var(--u-orange-dark);
+    --u-ph-yellow: var(--u-yellow-dark);
+    --u-ph-green: var(--u-green-dark);
+    --u-ph-teal: var(--u-teal-dark);
+    --u-ph-blue: var(--u-blue-dark);
+    --u-ph-indigo: var(--u-indigo-dark);
+    --u-ph-purple: var(--u-purple-dark);
+    --u-ph-pink: var(--u-pink-dark);
+    --u-ph-salmon: var(--u-salmon-dark);
 
     /* ── accent: lifted for dark ── */
     --u-accent: oklch(0.66 0.20 250);
   }
 }
+
+
+
 /* ═══════════════════════════════════════════════════════════════
    Unity DS — scales.css
    Grey scale + tinted depth + border system
