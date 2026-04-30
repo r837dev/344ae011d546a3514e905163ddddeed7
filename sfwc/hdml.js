@@ -676,3 +676,4 @@ const hdml = (() => {
 })();
 
 if (typeof module !== 'undefined') module.exports = hdml;
+if (typeof window !== 'undefined') window.hdml = hdml;
