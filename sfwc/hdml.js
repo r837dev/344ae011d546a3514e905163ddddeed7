@@ -79,7 +79,8 @@ const hdml = (() => {
   // ── Inline tags: #[tag(attrs) content] ────────────────────────
 
   function processInlineText(text, data) {
-    const interpolated = interpolate(text, data);
+    let interpolated = interpolate(text, data);
+    interpolated = interpolateSExprs(interpolated, data);
     if (!interpolated || !interpolated.includes('#[')) return interpolated;
 
     let result = '';
@@ -171,9 +172,14 @@ const hdml = (() => {
 
   function splitTwo(s) {
     s = s.trim();
-    // Handle quoted first arg.
+    // Handle double-quoted first arg.
     if (s[0] === '"') {
       const end = s.indexOf('"', 1);
+      return [s.slice(0, end + 1), s.slice(end + 1).trim()];
+    }
+    // Handle single-quoted first arg (used in inline S-expressions).
+    if (s[0] === "'") {
+      const end = s.indexOf("'", 1);
       return [s.slice(0, end + 1), s.slice(end + 1).trim()];
     }
     // Handle nested s-expression.
@@ -191,9 +197,71 @@ const hdml = (() => {
   function resolveArg(arg, data) {
     arg = arg.trim();
     if (arg.startsWith('"') && arg.endsWith('"')) return arg.slice(1, -1);
+    if (arg.startsWith("'") && arg.endsWith("'")) return arg.slice(1, -1);
     if (arg.startsWith('(')) return evalCondition(arg, data);
+    // Bare numeric literal.
+    if (/^-?\d+(\.\d+)?$/.test(arg)) return Number(arg);
     const val = resolvePath(data, arg);
     return val == null ? '' : val;
+  }
+
+  // ── Inline S-expression values ──────────────────────────────────
+
+  const SEXPR_HELPERS = new Set(['if','eq','ne','gt','lt','gte','lte','and','or','not']);
+
+  function evalSExprValue(expr, data) {
+    expr = expr.trim();
+    const sp = expr.indexOf(' ');
+    if (sp === -1) return '';
+    const helper = expr.slice(0, sp);
+    const rest = expr.slice(sp + 1).trim();
+
+    if (helper === 'if') {
+      const [cond, remainder] = splitTwo(rest);
+      const [truthy, falsy] = splitTwo(remainder);
+      return evalCondition(cond, data)
+        ? resolveStringArg(truthy, data)
+        : resolveStringArg(falsy, data);
+    }
+    // Boolean helpers — return string.
+    return evalHelper(expr, data) ? 'true' : 'false';
+  }
+
+  function resolveStringArg(arg, data) {
+    arg = arg.trim();
+    if (arg.startsWith("'") && arg.endsWith("'") && arg.length >= 2) return arg.slice(1, -1);
+    if (arg.startsWith('"') && arg.endsWith('"') && arg.length >= 2) return arg.slice(1, -1);
+    if (arg.startsWith('(') && arg.endsWith(')')) return evalSExprValue(arg.slice(1, -1), data);
+    if (!arg) return '';
+    const val = resolvePath(data, arg);
+    return val == null ? '' : String(val);
+  }
+
+  function interpolateSExprs(text, data) {
+    if (!text || !text.includes('(')) return text;
+    let result = '';
+    let pos = 0;
+    while (pos < text.length) {
+      if (text[pos] === '(') {
+        let depth = 0, end = pos;
+        for (let i = pos; i < text.length; i++) {
+          if (text[i] === '(') depth++;
+          else if (text[i] === ')') { depth--; if (depth === 0) { end = i; break; } }
+        }
+        if (depth === 0) {
+          const inner = text.slice(pos + 1, end).trim();
+          const keyword = inner.split(/\s/)[0];
+          if (SEXPR_HELPERS.has(keyword)) {
+            result += evalSExprValue(inner, data);
+            pos = end + 1;
+            continue;
+          }
+        }
+      }
+      result += text[pos];
+      pos++;
+    }
+    return result;
   }
 
   function isTruthy(val) {
@@ -486,14 +554,15 @@ const hdml = (() => {
   }
 
   function interpolateLine(raw, data) {
-    // Interpolate #{} and !{} in the text portion (after tag/attrs).
-    return raw.replace(/#\{(.*?)\}/g, (_, expr) => {
+    // Interpolate #{}, !{}, and (helper ...) in the text portion.
+    let result = raw.replace(/#\{(.*?)\}/g, (_, expr) => {
       const val = resolvePath(data, expr.trim());
       return val == null ? '' : escapeHtml(String(val));
     }).replace(/!\{(.*?)\}/g, (_, expr) => {
       const val = resolvePath(data, expr.trim());
       return val == null ? '' : String(val);
     });
+    return interpolateSExprs(result, data);
   }
 
   // ── DOM rendering ─────────────────────────────────────────────
@@ -564,8 +633,10 @@ const hdml = (() => {
           continue;
         }
         if (attr.name === 'style') { styleParts.push(attr.value); continue; }
-        if (attr.value !== null) el.setAttribute(attr.name, attr.value);
-        else el.setAttribute(attr.name, '');
+        if (attr.value !== null) {
+          let v = interpolateSExprs(interpolate(attr.value, data), data);
+          el.setAttribute(attr.name, v);
+        } else el.setAttribute(attr.name, '');
       }
       if (styleParts.length) el.setAttribute('style', styleParts.join('; '));
 
