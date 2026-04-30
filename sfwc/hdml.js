@@ -430,6 +430,23 @@ const hdml = (() => {
 
   // ── Control flow expansion ────────────────────────────────────
 
+  function dedentLines(lines, targetIndent) {
+    let minIndent = Infinity;
+    for (const line of lines) {
+      if (line.trim() === '') continue;
+      const li = line.length - line.trimStart().length;
+      if (li < minIndent) minIndent = li;
+    }
+    if (minIndent === Infinity) return lines;
+    const shift = minIndent - targetIndent;
+    if (shift <= 0) return lines;
+    return lines.map(line => {
+      if (line.trim() === '') return line;
+      const cur = line.length - line.trimStart().length;
+      return ' '.repeat(Math.max(0, cur - shift)) + line.trimStart();
+    });
+  }
+
   function expandControlFlow(lines, data, mixins, prefix, templates) {
     templates = templates || {};
     const result = [];
@@ -448,10 +465,8 @@ const hdml = (() => {
         const path = content.slice(8).trim();
         const tmplSource = resolveTemplate(path, templates);
         if (tmplSource) {
-          // Indent included content to match the include line's indent.
-          const padding = ' '.repeat(indent);
-          const includedLines = tmplSource.split('\n').map(l => l.trim() ? padding + l : l);
-          result.push(...expandControlFlow(includedLines, data, mixins, prefix, templates));
+          const included = expandControlFlow(tmplSource.split('\n'), data, mixins, prefix, templates);
+          result.push(...dedentLines(included, indent));
         }
         i++;
         continue;
@@ -471,9 +486,9 @@ const hdml = (() => {
         }
 
         if (evalCondition(condition, data)) {
-          result.push(...expandControlFlow(body, data, mixins, prefix, templates));
+          result.push(...dedentLines(expandControlFlow(body, data, mixins, prefix, templates), indent));
         } else {
-          result.push(...expandControlFlow(elseBody, data, mixins, prefix, templates));
+          result.push(...dedentLines(expandControlFlow(elseBody, data, mixins, prefix, templates), indent));
         }
         continue;
       }
@@ -491,7 +506,8 @@ const hdml = (() => {
             for (let ci = 0; ci < collection.length; ci++) {
               const scopedData = { ...data, [itemName]: collection[ci] };
               if (indexName) scopedData[indexName] = ci;
-              result.push(...expandControlFlow(body, scopedData, mixins, prefix, templates));
+              const expanded = expandControlFlow(body, scopedData, mixins, prefix, templates);
+              result.push(...dedentLines(expanded, indent));
             }
           }
           continue;
@@ -525,7 +541,7 @@ const hdml = (() => {
           const bodyLines = mixin.body.split('\n');
           const expanded = expandControlFlow(bodyLines, scopedData, mixins, prefix, templates);
           // TODO: substitute `block` placeholder with caller children.
-          result.push(...expanded);
+          result.push(...dedentLines(expanded, indent));
         } else {
           i++;
         }
