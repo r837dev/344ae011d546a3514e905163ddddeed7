@@ -1,8 +1,8 @@
 /**
  * hdml.js — Live HDML-to-DOM renderer.
  *
- * Full-featured: tags, nesting, @prefix, $tokens, on-* events,
- * #{interpolation}, !{raw}, if/else, each loops, mixin/+mixin(),
+ * Full-featured: tags, nesting, @prefix, %tokens, on-* events,
+ * ${interpolation}, !{raw}, if/else, each loops, mixin/+mixin(),
  * #[inline tags], comments, pipe text, void elements.
  *
  * Usage:
@@ -315,7 +315,7 @@ const hdml = (() => {
       if (pos < len && input[pos] === '=') {
         pos++; skipSpaces();
         const expr = consumeToEol().trim();
-        if (expr) tokens.push({ kind: T.Text, value: `#{${expr}}`, line });
+        if (expr) tokens.push({ kind: T.Text, value: `\${${expr}}`, line });
         return;
       }
       // Remaining text.
@@ -355,9 +355,9 @@ const hdml = (() => {
           break;
         }
 
-        // Attribute name (may start with $ for tokens).
+        // Attribute name (may start with % for tokens).
         const nameStart = pos;
-        if (pos < len && input[pos] === '$') pos++;
+        if (pos < len && input[pos] === '%') pos++;
         scanIdent();
         // $prop!= raw token — include trailing !
         if (pos < len && input[pos] === '!') pos++;
@@ -394,11 +394,11 @@ const hdml = (() => {
             }
             tokens.push({ kind: T.AttrValue, value: input.slice(vs, pos).trim(), line });
           } else if (pos < len) {
-            // Unquoted value (variable path) → wrap in #{}.
+            // Unquoted value (variable path) → wrap in ${}.
             const vs = pos;
             while (pos < len && input[pos] !== ')' && input[pos] !== ' ' && input[pos] !== '\t') pos++;
             const expr = input.slice(vs, pos).trim();
-            tokens.push({ kind: T.AttrValue, value: `#{${expr}}`, line });
+            tokens.push({ kind: T.AttrValue, value: `\${${expr}}`, line });
           }
         }
         // Otherwise boolean attribute (name only).
@@ -696,8 +696,8 @@ const hdml = (() => {
         }
         return { type: 'Event', event, handler };
       }
-      // Token: $*
-      if (name.startsWith('$')) {
+      // Token: %*
+      if (name.startsWith('%')) {
         let shorthand = name.slice(1);
         let raw = false;
         if (shorthand.endsWith('!')) { shorthand = shorthand.slice(0, -1); raw = true; }
@@ -902,10 +902,10 @@ const hdml = (() => {
     let result = text;
     for (const [param, value] of Object.entries(bindings)) {
       result = result
-        .replace(new RegExp(`#\\{${escapeRegExp(param)}\\}`, 'g'), value)
+        .replace(new RegExp(`\\$\\{${escapeRegExp(param)}\\}`, 'g'), value)
         .replace(new RegExp(`!\\{${escapeRegExp(param)}\\}`, 'g'), value);
       // Direct param name as whole text (= param pattern from lexer).
-      if (result === `#{${param}}`) result = value;
+      if (result === `\${${param}}`) result = value;
     }
     return result;
   }
@@ -913,9 +913,9 @@ const hdml = (() => {
   function substituteAttrValue(value, bindings) {
     let result = value;
     for (const [param, replacement] of Object.entries(bindings)) {
-      if (result === param || result === `#{${param}}` || result === `!{${param}}`) return replacement;
+      if (result === param || result === `\${${param}}` || result === `!{${param}}`) return replacement;
       result = result
-        .replace(new RegExp(`#\\{${escapeRegExp(param)}\\}`, 'g'), replacement)
+        .replace(new RegExp(`\\$\\{${escapeRegExp(param)}\\}`, 'g'), replacement)
         .replace(new RegExp(`!\\{${escapeRegExp(param)}\\}`, 'g'), replacement);
     }
     return result;
@@ -1040,7 +1040,7 @@ const hdml = (() => {
 
   function interpolate(text, data, htmlMode = false, allowRaw = true) {
     if (!text) return text;
-    return text.replace(/#\{(.*?)\}/g, (_, expr) => {
+    return text.replace(/\$\{(.*?)\}/g, (_, expr) => {
       const val = resolveValueArg(expr.trim(), data);
       const str = valueToString(val);
       return htmlMode ? escapeHtml(str) : str;
@@ -1304,7 +1304,7 @@ const hdml = (() => {
   // ── DOM Emitter ──────────────────────────────────────────────
   //
   // Walks the AST and builds a DocumentFragment. Evaluates data
-  // binding (#{}, !{}, if, each, S-exprs) during emission.
+  // binding (${}, !{}, if, each, S-exprs) during emission.
 
   // ── Security defaults ────────────────────────────────────────
   // These can be overridden via opts. Backward-compat: defaults match
